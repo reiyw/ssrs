@@ -1,7 +1,7 @@
 use anyhow::Result;
 use cpal::Device;
+use linked_hash_map::LinkedHashMap;
 use rodio::Source;
-use std::collections::BTreeMap;
 use std::fmt;
 use std::fs::File;
 use std::io::BufReader;
@@ -45,13 +45,13 @@ impl<P: AsRef<Path>> From<P> for Sound {
 
 #[derive(Debug)]
 pub struct SoundList {
-    sounds: BTreeMap<char, Sound>,
+    sounds: LinkedHashMap<char, Sound>,
 }
 
 impl SoundList {
     fn new() -> Self {
         Self {
-            sounds: BTreeMap::new(),
+            sounds: LinkedHashMap::new(),
         }
     }
 
@@ -70,7 +70,7 @@ impl SoundList {
         self.sounds.get(&key)
     }
 
-    pub fn iter(&self) -> std::collections::btree_map::Iter<char, Sound> {
+    pub fn iter(&self) -> linked_hash_map::Iter<char, Sound> {
         self.sounds.iter()
     }
 }
