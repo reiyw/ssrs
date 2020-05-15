@@ -56,14 +56,16 @@ impl SoundList {
     }
 
     pub fn from_directory<P: AsRef<Path>>(dir: P) -> Self {
-        WalkDir::new(dir)
+        let mut sound_paths: Vec<PathBuf> = WalkDir::new(dir)
             .into_iter()
             .map(|e| e.unwrap().into_path())
             .filter(|path| {
                 path.extension().is_some()
                     && AVAILABLE_EXTENSIONS.contains(&path.extension().unwrap().to_str().unwrap())
             })
-            .collect()
+            .collect();
+        sound_paths.sort();
+        sound_paths.iter().collect()
     }
 
     pub fn get_sound_from_key(&self, key: char) -> Option<&Sound> {
