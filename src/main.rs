@@ -1,14 +1,25 @@
 use anyhow::Result;
-use cpal::Device;
-use rodio::Source;
-use std::fs::File;
-use std::io::{stdin, stdout, BufReader, Write};
-use std::path::Path;
-use termion::event::{Event, Key};
+use ssrs::SoundList;
+use std::io::{stdin, stdout, Write};
+use std::path::PathBuf;
+use structopt::StructOpt;
+use termion::event::Key;
 use termion::input::TermRead;
 use termion::raw::IntoRawMode;
 
+#[derive(StructOpt, Debug)]
+#[structopt(name = "ssrs")]
+struct Opt {
+    /// Directory that stores sound files
+    #[structopt(name = "DIR", parse(from_os_str), default_value = ".")]
+    dir: PathBuf,
+}
+
 fn main() -> Result<()> {
+    let opt = Opt::from_args();
+
+    let sl = SoundList::from_directory(opt.dir);
+
     let device = rodio::default_output_device().unwrap();
 
     let stdin = stdin();
@@ -16,29 +27,30 @@ fn main() -> Result<()> {
 
     write!(
         stdout,
-        "{}{}Esc to exit. Type stuff, use alt, and so on.{}",
+        "{}{}Esc to exit.{}\n\r",
         termion::clear::All,
         termion::cursor::Goto(1, 1),
         termion::cursor::Hide
     )?;
     stdout.flush()?;
 
-    for c in stdin.events() {
-        match c? {
-            Event::Key(Key::Esc) => break,
-            Event::Key(Key::Char('a')) => play_file(&device, "sound/op.ogg")?,
+    for (key, sound) in sl.iter() {
+        write!(stdout, "{}) {}\n\r", key, sound)?;
+    }
+
+    for key in stdin.keys() {
+        match key? {
+            Key::Esc => break,
+            Key::Char(c) => {
+                if let Some(sound) = sl.get_sound_from_key(c) {
+                    sound.play(&device)?;
+                }
+            }
             _ => (),
         }
     }
 
     write!(stdout, "{}", termion::cursor::Show)?;
 
-    Ok(())
-}
-
-fn play_file<P: AsRef<Path>>(device: &Device, path: P) -> Result<()> {
-    let file = File::open(path)?;
-    let source = rodio::Decoder::new(BufReader::new(file))?;
-    rodio::play_raw(&device, source.convert_samples());
     Ok(())
 }
